@@ -20,14 +20,35 @@ Arduino- Raspberry Pico based Data Recorder.<br/> This Software is doing an accu
 **TIME**  -  get and set time value<br/>
 **TYPE** - list an ASCII-File on your terminal<br/>
 **VER** - shows some software informations<br/>
-**XREC** - XModem-CRC upload to uC uC SD-Card<br/>
-**XTRAN** - XModem download from uC uC SD-Card<br/>
+**XREC** - XModem-CRC upload to uC SD-Card<br/>
+**XTRAN** - XModem download from uC SD-Card<br/>
 **YREC** - YMODEM-1K CRC upload to uC SD-Card (multible file transfer is possible)<br/>
 
 ```ruby
-if (bBME680) {
-  Wire.setClock(200000);
-}
+  if (Serial.available()) { 
+    inChar = (char) Serial.read();
+    if ((!bSerOn)&&(inChar !=0)) {
+      Serial.println();
+      bSerOn= true;
+      delay(100);
+      Serial.print(F("\r\n\e[0H\e[2J")); 
+      *psLine= 0;
+      Serial.print(sPath);
+      Serial.print(F(">")); 
+    } else
+    if (bEM= editLine(psLine, inChar)) {
+      psLine = strupr(psLine);
+      int iRet= fnSDOS_Parser(psLine);
+      spi_init(SPI_PORT, SPI_SPD);
+      gpio_set_function(LCD_CLK_PIN,  GPIO_FUNC_SPI);
+      gpio_set_function(LCD_MOSI_PIN, GPIO_FUNC_SPI);
+      gpio_set_function(LCD_MISO_PIN, GPIO_FUNC_SPI);
+      *psLine= 0;
+      Serial.print(F("\r\n"));
+      Serial.print(sPath);
+      Serial.print(F(">"));
+    } /* end if */
+  }
 ```
 >[!NOTE]
 >Required Hardware : 
