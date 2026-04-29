@@ -1,7 +1,6 @@
 # ClimaData-Recorder
-Barometric altitude calculation and full Clima-Data measurement/recording
 
-Raspberry Pico based Data Recorder.
+Arduino- Raspberry Pico based Data Recorder. An accurate altitude calculation for thermal gradients and full Clima-Data measurement/recording
 
 **ALT**  -  Set default Altitude for QNH
 
