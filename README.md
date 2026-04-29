@@ -51,6 +51,6 @@ Arduino- Raspberry Pico based Data Recorder.<br/> This Software is doing an accu
   }
 ```
 >[!NOTE]
->Required Hardware : 
-Raspberry Pico (RP2040/RP2350), 3inch5 LCD with SD-Card (IL, BME680, DS3231 and/with AT24CS32 (EEP).<br/>
-This software based on some other Software-modules. Some functions are changed for less ressources.<br/>
+>Required Hardware :<BR/> 
+- Raspberry Pico (RP2040/RP2350), 3inch5 LCD with SD-Card (IL9688, BME680, DS3231 and/with AT24CS32 (EEP).<br/>
+- This software based on external Software-modules, but some functions are modifyed for less ressources.<br/>
