@@ -24,13 +24,13 @@ Arduino- Raspberry Pico based Data Recorder. An accurate altitude calculation fo
 
 **EEP**  - Dump EEPROM
 
-**HELP**  -
+**HELP**  -  list all commands
 
-**HUM**  -
+**HUM**  -  shows humidity
 
-**LCD**  -
+**LCD**  -  Set the background light intensity (0..100%)
 
-**PRES**  -
+**PRES**  -  shows air- pressure
 
 **TEMP** - shows temperature measurement values
 
