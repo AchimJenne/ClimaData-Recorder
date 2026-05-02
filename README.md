@@ -24,33 +24,26 @@ Arduino- Raspberry Pico based Data Recorder.<br/> This Software is doing an accu
 **XTRAN** - XModem download from uC SD-Card<br/>
 **YREC** - YMODEM-1K CRC upload to uC SD-Card (multible file transfer is possible)<br/>
 
+For SD-Card access, this Software is using the SPI- mode. Definition of th SD-Card interface (Pico_Dev.h):
 ```ruby
-  if (Serial.available()) { 
-    inChar = (char) Serial.read();
-    if ((!bSerOn)&&(inChar !=0)) {
-      Serial.println();
-      bSerOn= true;
-      delay(100);
-      Serial.print(F("\r\n\e[0H\e[2J")); 
-      *psLine= 0;
-      Serial.print(sPath);
-      Serial.print(F(">")); 
-    } else
-    if (bEM= editLine(psLine, inChar)) {
-      psLine = strupr(psLine);
-      int iRet= fnSDOS_Parser(psLine);
-      spi_init(SPI_PORT, SPI_SPD);
-      gpio_set_function(LCD_CLK_PIN,  GPIO_FUNC_SPI);
-      gpio_set_function(LCD_MOSI_PIN, GPIO_FUNC_SPI);
-      gpio_set_function(LCD_MISO_PIN, GPIO_FUNC_SPI);
-      *psLine= 0;
-      Serial.print(F("\r\n"));
-      Serial.print(sPath);
-      Serial.print(F(">"));
-    } /* end if */
-  }
+// SD-Card parameter
+#define SDSPD     48
+#define PIN_MISO  12
+#define PIN_MOSI  11
+#define PIN_SCK   10
+#define PIN_SS    22
+#define SDSPI     SPI1
+#define SDCRD     PIN_SS,SPI1
 ```
 >[!NOTE]
 >Required Hardware :<BR/> 
-- Raspberry Pico (RP2040/RP2350), 3inch5 LCD with SD-Card (IL9688, BME680, DS3231 and/with AT24CS32 (EEP).<br/>
-- This software based on external Software-modules, but some functions are modifyed for less ressources.<br/>
+- Raspberry Pico (**RP2040/RP2350**),
+- 3inch5 LCD (Waveshare **Pico-ResTouch-LCD-3.5** or comp.ILI9488) with SD-Card 
+- **BME680**, Senormodule for Temperature, Air-pressure and humidity (Gas sensor not used)
+- **DS3231 and/with AT24CS32** (EEP).<br/>
+- This software based on external PD- Software-modules, but some functions are modifyed for this application.<br/>
+- The Arduino IDE the full team<br/>
+- Raspberry Pico GCC-implementation, done by Earle F. Philhower III<br/>
+- BME680 function by Bosch GmbH<br/>
+- LCD-GUI implementation, the Waveshare team<br/>
+- Realtime clock function by Manjunath CV<br/>
