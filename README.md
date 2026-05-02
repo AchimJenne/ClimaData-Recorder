@@ -1,28 +1,33 @@
 # ClimaData-Recorder
-Arduino- Raspberry Pico based Data Recorder.<br/> This Software is doing an accurate altitude calculation and can be used for thermal gradients and full Clima-Data measurement/recording.<br/>
+Arduino- Raspberry Pico based Data Recorder.<br/> This Software is doing an accurate Air temperature, pressure and humidity measurement. Based on this value, this SW calculate the altitude, climb-rate, absolute water mass and the air- desity. The main application should be the measurement and calculation the for thermal gradients over the alititude.<br/>
+<img width="800" height="534" alt="CliRecBasisDatVarioAlt" src="https://github.com/user-attachments/assets/22820f3b-5457-4b56-b077-2ae65fbf560a" />
+Two Testsystems with Waveshare 2350Plus, Akku, LCD (and SD-Card), DS3231- Module (w. EEP) and the BME680 Module<br/>
+>[!NOTE]
+>The Variometer value based on the accurate sensor value and the altitude calculation. The calculation is working fine, but the LSB's of the sensor-adc let the value toggle. Typical +/- 0.17 m/s up to +/- 0.5 m/s. The average looks right, but in a stand alone variometer applications... - it's not the main application to have an accurate varioneter.<br/> The variometer value is for information only!<BR/> 
+
 ## List of commands
-**ALT**  -  Set default Altitude for QNH<br/>
-**AUTO** - shows Timestamp and clima measurement date every seconds<br/>
-**AUTOLOG**  - record weather data on SD-Card<br/>
+**ALT**    -  Set default Altitude for QNH<br/>
+**AUTO**   - shows Timestamp and clima measurement date every seconds<br/>
+**AUTOLOG** - record primary weather data and write on the SD-Card<br/>
 **CD**, **MD**, **RD** - directory handling<br/>
-**CLS** - clear the VT100 screen and set the cursor position top-left<br/>
+**CLS**    - clear the VT100 screen and set the cursor position top-left<br/>
 **CONFIG** - shows the SPI- configuration<br/>
-**COPY** - copy a file from => to filename<br/>
-**DEL** - removing file<br/>
-**DIR** - shows the directory<br/>
+**COPY**   - copy a file from => to filename<br/>
+**DEL**    - removing file<br/>
+**DIR**    - shows the directory<br/>
 **DATE** and **TIME** - get and set time/date value<br/>
-**EEP**  - Dump EEPROM<br/>
-**HELP**  -  list all commands<br/>
-**HUM**  -  shows humidity<br/>
-**LCD**  -  Set the background light intensity (0..100%)<br/>
-**PRES**  -  shows air- pressure<br/>
-**TEMP** - shows temperature measurement values<br/>
-**TIME**  -  get and set time value<br/>
-**TYPE** - list an ASCII-File on your terminal<br/>
-**VER** - shows some software informations<br/>
-**XREC** - XModem-CRC upload to uC SD-Card<br/>
-**XTRAN** - XModem download from uC SD-Card<br/>
-**YREC** - YMODEM-1K CRC upload to uC SD-Card (multible file transfer is possible)<br/>
+**EEP**    - Dump EEPROM<br/>
+**HELP**   - list all commands<br/>
+**HUM**    - shows humidity<br/>
+**LCD**    - Set the background light intensity (0..100%)<br/>
+**PRES**   - shows air- pressure<br/>
+**TEMP**   - shows temperature measurement values<br/>
+**TIME**   - get and set time value<br/>
+**TYPE**   - list an ASCII-File on your terminal<br/>
+**VER**    - shows some software informations<br/>
+**XREC**   - XModem-CRC upload to uC SD-Card<br/>
+**XTRAN**  - XModem download from uC SD-Card<br/>
+**YREC**   - YMODEM-1K CRC upload to uC SD-Card (multible file transfer is possible)<br/>
 
 For SD-Card access, this Software is using the SPI- mode. Definition of th SD-Card interface (Pico_Dev.h):
 ```ruby
