@@ -25,6 +25,8 @@
 #include "LCD_GUI.h"
 #include "LCD_Touch.h"
 #include "BME68x.h"
+
+// #include <EEPROM.h>
 /**************************************************/
 /**
 */
@@ -32,11 +34,6 @@
 #define SECTICK 60
 #define METTICK 100
 
-#ifdef BOARD_NAME1
-#define CPUTEMP 1.75f
-#else
-#define CPUTEMP 1.0f
-#endif
 // #define DEBUG
 /* Clock  grafic center-position and Clock face param. */
 uint16_t iXOfs = 375, iYOfs = 150;
@@ -68,13 +65,10 @@ int32_t iQNH;
 int32_t iCorPr= 0;
 float   fCPUTemp = 15.0;
 
-// const float   fMolGasC= 8.31446261815324; // J/(mol*K)
-// const float   fMolMass= 0.0289644;  // kg/mol
-// const float   fRS = (fMolGasC / fMolMass);  // gas const. dry air 287.058 J/(kg*K)
-// const float   fRD = 461.523;                // gas const. water vapor in J/(kg*K)
 float   fDens = 0.0f;
 
 bool    bRecData= false;
+char    sRecFn[40]= "RecClima.csv";
 tRecData myData[100];
 
 bool    bBME680  = false;
@@ -94,10 +88,13 @@ void setup()
   int   err = 0;
   uint32_t iTi;
 
-  pinMode(PIN_LED, OUTPUT);
-  pinMode(LCD_BKL_PIN, OUTPUT);
-  pinMode(TP_CS_PIN, OUTPUT);
-  pinMode(TP_IRQ_PIN, INPUT);
+  // define flash-based EEPROM
+  // EEPROM.begin(512);
+
+  pinMode( PIN_LED, OUTPUT);
+  pinMode( LCD_BKL_PIN, OUTPUT);
+  pinMode( TP_CS_PIN, OUTPUT);
+  pinMode( TP_IRQ_PIN, INPUT);
   pinMode( A3, INPUT);
   pinMode( D24, INPUT);
   pinMode( D23, OUTPUT);
@@ -105,9 +102,9 @@ void setup()
 
   Serial.begin(115200);
   // wait on Serial to be available
-  if(digitalRead(D24)) {
+  if(digitalRead(D24)) {  // power supply comes from USB
     iTi = millis()+ 20000;
-    while ((!Serial) && (millis() < iTi)){
+    while ((!Serial) && (millis() < iTi)) {
     } 
   }
   delay(10);
@@ -149,7 +146,11 @@ void setup()
   SDSPI.setMISO(PIN_MISO);
   SDSPI.setMOSI(PIN_MOSI);
   SDSPI.setSCK(PIN_SCK);
-  SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
+  // SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
+  // spi_init(SPI_PORT, SPI_SPD);
+  // gpio_set_function(LCD_CLK_PIN,  GPIO_FUNC_SPI);
+	// gpio_set_function(LCD_MOSI_PIN, GPIO_FUNC_SPI);
+	// gpio_set_function(LCD_MISO_PIN, GPIO_FUNC_SPI);
   
   gpio_put(SD_CS_PIN,  1);
   gpio_put(TP_CS_PIN , 1);
@@ -171,6 +172,10 @@ void setup()
   SD.end();
 
   //*** external RTC Modul ***
+  // Wire.setSCL(PICO_DEFAULT_I2C_SCL_PIN);
+  // Wire.setSDA(PICO_DEFAULT_I2C_SDA_PIN);
+  Wire.setSCL(MY_WIRE0_SCL);
+  Wire.setSDA(MY_WIRE0_SDA);
   Wire.setClock(400000);
   if (RTC.begin()) {
     bRTC = true;
@@ -204,7 +209,7 @@ void setup()
       Serial.println(sLine); 
       
       Wire.begin();
-      Serial.print("EEPROM at [");
+      Serial.print("RTC-EEPROM at [");
       Serial.print(adrEEP, HEX);
       Serial.print("]: ");
       Wire.beginTransmission(adrEEP);
@@ -221,6 +226,10 @@ void setup()
       Serial.println(F(" found"));
     }
   } else {
+    // Flash-based EEPROM handling at startup
+    // bALog = EEPROM.read(0x0000);
+    // iOfAlt= (EEPROM.read(0x0002)<<8) + EEPROM.read(0x0001);
+    // bEEP = true;
     // set internal RTC to SW build date and time
     Serial.println("Internal RTC only");
     char sMon[5];
@@ -237,7 +246,7 @@ void setup()
     settimeofday(&tiV, nullptr);    
   }
   time(&tiUx); 
-  Serial.print(F("Pico internal RTC: "));
+  Serial.print(F("Set Pico int. RTC:"));
   strftime(sLine, sizeof(sLine), "%0d.%0m.20%0y %0H:%0M:%0S", localtime(&tiUx));
   Serial.println(sLine);
 
@@ -307,6 +316,7 @@ void loop() {
   static int16_t iMinOld, iMonOld;
   static int16_t iTHPCn= 0;
   static int32_t iTeSu= 0, iHuSu= 0, iPrSu= 0;
+  static int iRecCnt= 0;
 
   // put your main code here, to run repeatedly:
   if (Serial.available()) { 
@@ -335,16 +345,18 @@ void loop() {
     } /* end if */
     /************************************************************/
   } else {
-    // gpio_put( D23, 1);   // reduce ripple
+    // gpio_put( D23, 1);   // DC-DC should have less ripple
     time(&tiUx);
     fCPUTemp = (analogReadTemp(3.3f) + analogReadTemp(3.3f)) / 2.0;
     iUSys = ((analogRead(A3) + analogRead(A3))*1000)/824;
-    // gpio_put( D23, 0);  // higher efficiency
+    // gpio_put( D23, 0);  // DC-DC set to higher efficiency
 
-    if (tiUx != tiUxOld) {    // once second interval
+    if (tiUx != tiUxOld) {    // one second interval
       tiUxOld = tiUx;
       mytm = *localtime(&tiUx);
+      // Serial.println(tiUx);
 
+      // getting daily time from external RTC (accuracy is as higher as internal RTC!)
       if ((bRTC)&&(mytm.tm_mday == iMDayOld)) {
         Wire.setClock(400000);
         mytm.tm_year = RTC.getYear() -1900;
@@ -357,100 +369,37 @@ void loop() {
         tiV.tv_usec  = 0;
         settimeofday(&tiV, nullptr);
         iMDayOld     = mytm.tm_mday;
-      }
-      
-      gpio_put(SD_CS_PIN,  1);
-      gpio_put(LCD_CS_PIN, 1);
-      gpio_put(LCD_DC_PIN, 1);
+      } /* end if */
       
       // test LCD- touch IRQ- Signal
       if (!digitalRead(TP_IRQ_PIN)) {
+        gpio_put(SD_CS_PIN,  1);
+        gpio_put(LCD_CS_PIN, 1);
+        gpio_put(LCD_DC_PIN, 1);
         TP_Read_ADC_XY(&x_0, &y_0);   // get the touchpointer
         if ((x_0>250) && (x_0<4095) && (y_0>2100) && (y_0<3980)) {
-          iPgCnt++;
-          iPgCnt= (iPgCnt % MAXLCDPAGE);
+          if ((iPgCnt == 4) && (x_0 > 1500) && (x_0 < 3200)){
+            if (!bRecData){
+              bRecData = true;
+              iRecCnt= 0;
+            } else {
+              bRecData = false;
+            }
+          } else {
+            iPgCnt++;
+            iPgCnt= (iPgCnt % MAXLCDPAGE);
+          }
         } else
         if ((x_0>250) && (x_0<4095) && (y_0>250) && (y_0<=2100)) {
           if (iPgCnt > 0) {
             iPgCnt--;
           } else {
             iPgCnt = MAXLCDPAGE;
-          }
-        }
-      }
-
-      // BME680 only 
-      if (bBME680) {
-        Wire.setClock(800000);
-        Wire.beginTransmission(BMEADR);
-        MySens.getSensorData(iTemp, iHum, iPres, iGas, false);
-        Wire.endTransmission(); 
-        iQNH  = iPres + iCorPr;     
-        if (bAuto) {
-          strftime(sTemp, sizeof(sTemp), "%0d.%0m.20%0y (%a)  %0H:%0M:%0S  ", localtime(&tiUx));
-          Serial.print(sTemp);
-          sprintf(sTemp, "Tem:%3d.%01d C ", (iTemp/100), (iTemp%100)/10);
-          Serial.print(sTemp);
-          sprintf(sTemp, "Pre:%4d.%01d hPa ", (iPres/100), (iPres%100)/10);
-          Serial.print(sTemp);
-          sprintf(sTemp, "QNH:%4d.%01d hPa ", (iQNH/100), (iQNH%100)/10);
-          Serial.print(sTemp);
-          sprintf(sTemp, "Hum:%3d.%01d %%", (iHum/1000), (iHum % 1000)/100);
-          Serial.println(sTemp);
-          Serial.print(sPath);
-          Serial.print(">");
-        }
-        // Logfile option is active
-        if (bALog) {
-          iTeSu = iTeSu + iTemp;
-          iHuSu = iHuSu + iHum;
-          iPrSu = iPrSu + iPres;
-          iTHPCn++;
-          if (iMinOld != mytm.tm_min) { // every minute building the full dataset
-            year  = mytm.tm_year + 1900;
-            mon   = mytm.tm_mon + 1;
-            day   = mytm.tm_mday;
-            hour  = mytm.tm_hour;
-            iMinOld= minute= mytm.tm_min;
-            second= mytm.tm_sec;
-                     
-            iTeAv  = iTeSu / iTHPCn;
-            iHuAv  = iHuSu / iTHPCn;
-            iPrAv  = iPrSu / iTHPCn;
-            iTeSu  = iHuSu = iPrSu= 0;
-            iTHPCn = 0;
-            iQNH   = iPrAv + iCorPr;      
-            if (iMonOld != mon) {
-              iMonOld = mon;
-              defLogFn(mon, &sLogFn[0]);
-            } /* end if */
-            sprintf(sTemp, 
-              "%2.02d-%2.02d-%4.4d\t%2.2d:%2.02d:%2.02d\tTem:\t%3d.%02d\t°C\tHum:\t%3d.%01d\t%%\tPre:\t%4d.%02d\thPa\tQNH:\t%4d.%02d\thPa",
-              day, mon, year, hour, minute, second,
-              (iTeAv / 100), (iTeAv % 100), (iHuAv/1000), (iHuAv % 1000)/100, (iPrAv/100), (iPrAv%100), (iQNH/100), (iQNH%100));
-            if (bSDCRD= SD.begin(SDCRD)) {
-              digitalWrite(PIN_LED, 1);
-              SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
-              File FH1 = SD.open(sLogFn, FILE_WRITE);
-              if (FH1) {
-                FH1.println(sTemp);
-                FH1.close();
-              } else {
-                Serial.print(F("Can\'t open File ..."));
-                Serial.print(sLogFn);
-              } /* end if */
-              SD.end();
-              digitalWrite(PIN_LED, 0);
-            } /* end if */
-            spi_init(SPI_PORT, SPI_SPD);
-            gpio_set_function(LCD_CLK_PIN,  GPIO_FUNC_SPI);
-	          gpio_set_function(LCD_MOSI_PIN, GPIO_FUNC_SPI);
-	          gpio_set_function(LCD_MISO_PIN, GPIO_FUNC_SPI);
-          }/* end if */
-        } /* end if */
+          } /* end if */
+         } /* end if */
       } /* end if */
-
-      // initialize active page
+      // LCD touch dialogs
+      // initialize active LCD page
       if (iPgCnt != iPgCntOld){
         switch (iPgCnt) {
           case 0:
@@ -499,7 +448,113 @@ void loop() {
         break;
         default:{
         }        
-      } /* end switch */      
+      } /* end switch */    
+
+      // BME680 only 
+      if (bBME680) {
+        Wire.setClock(400000);
+        Wire.beginTransmission(BMEADR);
+        MySens.getSensorData(iTemp, iHum, iPres, iGas, false);
+        Wire.endTransmission(); 
+        iQNH  = iPres + iCorPr;     
+        if (bAuto) {
+          strftime(sTemp, sizeof(sTemp), "%0d.%0m.20%0y (%a)  %0H:%0M:%0S  ", localtime(&tiUx));
+          Serial.print(sTemp);
+          sprintf(sTemp, "Tem:%3d.%01d C ", (iTemp/100), (iTemp%100)/10);
+          Serial.print(sTemp);
+          sprintf(sTemp, "Pre:%4d.%01d hPa ", (iPres/100), (iPres%100)/10);
+          Serial.print(sTemp);
+          sprintf(sTemp, "QNH:%4d.%01d hPa ", (iQNH/100), (iQNH%100)/10);
+          Serial.print(sTemp);
+          sprintf(sTemp, "Hum:%3d.%01d %%", (iHum/1000), (iHum % 1000)/100);
+          Serial.println(sTemp);
+          Serial.print(sPath);
+          Serial.print(">");
+        }
+
+        // Clima- logfile is active (TBD: could be move into function!?!)
+        if (bRecData) {
+          myData[iRecCnt].time= (mytm.tm_hour*10000) + (mytm.tm_min*100) + mytm.tm_sec;
+          myData[iRecCnt].temp= iTemp;
+          myData[iRecCnt].pres= iPres;
+          myData[iRecCnt].hum = iHum / 10;
+          myData[iRecCnt].alt = (float) (iCalcAltitude(iPres) / 100.0f);
+          myData[iRecCnt].dens= fCalcDensity(((float)iTemp/100.0f), ((float) iPres/100.0f), ((float) iHum / 100000.0f));
+          iRecCnt++;
+          
+          if (iRecCnt >= 20) {
+            if (bSDCRD= SD.begin(SDCRD)) {
+              gpio_put(PIN_LED, 1);           
+              File FH1 = SD.open(sRecFn, FILE_WRITE);
+              if (FH1) {
+                for (int iL=0; iL<iRecCnt; iL++) {
+                  sprintf(sTemp,"%li; %li; %li; %li; %8.2f; %7.5f",
+                      myData[iL].time, myData[iL].temp, myData[iL].pres, myData[iL].hum, myData[iL].alt, myData[iL].dens);
+                  FH1.println(sTemp);
+                } /* end for */
+                FH1.close();
+              } else {
+                Serial.print(F("Can\'t open File ... "));
+                Serial.println(sRecFn);
+              } /* end if */
+              SD.end();
+              spi_init(SPI_PORT, SPI_SPD);
+              gpio_set_function(LCD_CLK_PIN,  GPIO_FUNC_SPI);
+              gpio_set_function(LCD_MOSI_PIN, GPIO_FUNC_SPI);
+	            gpio_set_function(LCD_MISO_PIN, GPIO_FUNC_SPI);
+              gpio_put(PIN_LED, 0);
+            } /* end if */
+            iRecCnt = 0;
+          } /* end if */
+        } /*end if */
+
+        if (bALog) {
+          iTeSu = iTeSu + iTemp;
+          iHuSu = iHuSu + iHum;
+          iPrSu = iPrSu + iPres;
+          iTHPCn++;
+          if (iMinOld != mytm.tm_min) { // every minute building the full dataset
+            year  = mytm.tm_year + 1900;
+            mon   = mytm.tm_mon + 1;
+            day   = mytm.tm_mday;
+            hour  = mytm.tm_hour;
+            iMinOld= minute= mytm.tm_min;
+            second= mytm.tm_sec;
+                     
+            iTeAv  = iTeSu / iTHPCn;
+            iHuAv  = iHuSu / iTHPCn;
+            iPrAv  = iPrSu / iTHPCn;
+            iTeSu  = iHuSu = iPrSu= 0;
+            iTHPCn = 0;
+            iQNH   = iPrAv + iCorPr;      
+            if (iMonOld != mon) {
+              iMonOld = mon;
+              defLogFn(mon, &sLogFn[0]);
+            } /* end if */
+            sprintf(sTemp, 
+              "%2.02d-%2.02d-%4.4d\t%2.2d:%2.02d:%2.02d\tTem:\t%3d.%02d\t°C\tHum:\t%3d.%01d\t%%\tPre:\t%4d.%02d\thPa\tQNH:\t%4d.%02d\thPa",
+              day, mon, year, hour, minute, second,
+              (iTeAv / 100), (iTeAv % 100), (iHuAv/1000), (iHuAv % 1000)/100, (iPrAv/100), (iPrAv%100), (iQNH/100), (iQNH%100));
+            if (bSDCRD= SD.begin(SDCRD)) {
+              gpio_put(PIN_LED, 1);
+              File FH1 = SD.open(sLogFn, FILE_WRITE);
+              if (FH1) {
+                FH1.println(sTemp);
+                FH1.close();
+              } else {
+                Serial.print(F("Can\'t open File ..."));
+                Serial.println(sLogFn);
+              } /* end if */
+              SD.end();
+              gpio_put(PIN_LED, 0);
+            } /* end if */
+            spi_init(SPI_PORT, SPI_SPD);
+            gpio_set_function(LCD_CLK_PIN,  GPIO_FUNC_SPI);
+	          gpio_set_function(LCD_MOSI_PIN, GPIO_FUNC_SPI);
+	          gpio_set_function(LCD_MISO_PIN, GPIO_FUNC_SPI);
+          }/* end if */
+        } /* end if */
+      } /* end if */
     } /* end if */
   } /* end if */
 } /* end main loop */

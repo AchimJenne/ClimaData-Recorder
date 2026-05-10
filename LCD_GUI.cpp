@@ -584,4 +584,3 @@ void GUI_Show(void)
 	}
 #endif
 }
-

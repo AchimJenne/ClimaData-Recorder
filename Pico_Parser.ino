@@ -41,7 +41,8 @@ int fnc_AUTOLOG(const char* szCmdLn)
       Serial.print(F(": on"));
       bALog = true;
     } /* end if */
-    writeEEP(0x0000, (uint8_t*) bALog, 1);  
+    writeEEP(0x0000, (uint8_t*) bALog, 1); 
+
   return( eAUTOLOG );
 }  /* end of fnc_AUTOLOG */
 
@@ -139,7 +140,7 @@ int fnc_COPY(const char* szCmdLn)
     } /* end if */
     if (bSDCRD= SD.begin( SDCRD)) {
       digitalWrite(PIN_LED, 1);
-      SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
+      // SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
       FH1 = SD.open(sFnFrom, FILE_READ);
       if (FH1) {
         FH2 = SD.open(sFnTo, FILE_WRITE);
@@ -180,7 +181,7 @@ int fnc_CONFIG(const char* szCmdLn)
   Serial.print(F("CPU- Frequency: "));
   Serial.print(F_CPU/1000000);
   Serial.println(F(" MHz"));
-  sprintf(sLine, "CPU- Temper.  : %5.1f C", fCPUTemp);
+  sprintf(sLine, "CPU-Temperatur: %5.1f C", fCPUTemp);
   Serial.println(sLine);
   Serial.print(F("Board Voltage : "));
   sprintf(sLine, "%2d.%02d V", (iUSys/1000), (iUSys%1000)/10);
@@ -253,7 +254,7 @@ int fnc_CONFIG(const char* szCmdLn)
     } else {
       Serial.println(F("missing"));
       bEEP = false;
-    }
+    } /* end if */
   } /* end if */
   
   Wire.begin();
@@ -272,6 +273,11 @@ int fnc_CONFIG(const char* szCmdLn)
   } /* end if */  
   Serial.print(F("Free RAM : ")); 
   Serial.print(freeMemory());  
+  Serial.println(" Byte");
+  Serial.print(F("Heap : ")); 
+  Serial.print(rp2040.getUsedHeap());
+  Serial.print(F(" of : ")); 
+  Serial.print(rp2040.getTotalHeap());
   Serial.println(" Byte");
   digitalWrite(PIN_LED, 0);
   return( eCONFIG );
@@ -417,7 +423,7 @@ int fnc_DIR(const char* szCmdLn)
   Serial.println(F(" : "));
   if (bSDCRD= SD.begin(SDCRD)) {
     digitalWrite(PIN_LED, 1);
-    SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
+    // SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
     File dir = SD.open(sLine);
     printDirectory(dir, 0);
     SD.end();
@@ -439,7 +445,7 @@ int fnc_ECHO(const char* szCmdLn)
   Serial.print(F("\r\n"));
   if (bSDCRD= SD.begin(SDCRD)) {
     digitalWrite(PIN_LED, 1);
-    SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
+    // SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
     FH1 = SD.open(sLogFn, FILE_WRITE);
     if (FH1) {
       FH1.println(szCmdLn+1);
@@ -470,18 +476,33 @@ int fnc_EEP(const char* szCmdLn)
 
   // Serial.println();
   if (bEEP) {
-    Wire.setClock(1000000);
-    for (iAdr=0x0000; iAdr <=0x0fff; iAdr++) {
-      if ((iAdr%16)==0) {
-        Serial.println();
-        sprintf(sLine,"0x%4.4X ", iAdr);
+    if (bRTC){
+      Serial.println(" RTC- based EEPROM");
+      Wire.setClock(1000000);
+      for (iAdr=0x0000; iAdr <=0x0fff; iAdr++) {
+        if ((iAdr%16)==0) {
+          Serial.println();
+          sprintf(sLine,"0x%4.4X ", iAdr);
+          Serial.print(sLine);
+        }
+        iDat= readEEP(iAdr);
+        sprintf(sLine,"%2.2X ", iDat);
         Serial.print(sLine);
       }
-      iDat= readEEP(iAdr);
-      sprintf(sLine,"%2.2X ", iDat);
-      Serial.print(sLine);
+      // Wire.setClock(200000);
+    } else {
+      Serial.println(" Flash- based EEPROM");
+      for (iAdr=0x0000; iAdr <=0x01ff; iAdr++) {
+        if ((iAdr%16)==0) {
+          Serial.println();
+          sprintf(sLine,"0x%4.4X ", iAdr);
+          Serial.print(sLine);
+        }
+        // iDat= EEPROM.read(iAdr);
+        sprintf(sLine,"%2.2X ", iDat);
+        Serial.print(sLine);
+      }
     }
-    Wire.setClock(200000);
   } else {
     Serial.println("No EEPROM");
   }
@@ -501,7 +522,7 @@ int fnc_FORMAT(const char* szCmdLn)
   Serial.println(F(" : "));
   if (bSDCRD= SD.begin(SDCRD)) {
     digitalWrite(PIN_LED, 1);
-    SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
+    // SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
     Serial.println(F("A \"format\" function was not implemented"));
     Serial.print("SD-Card error : ");
     SD.end();
@@ -523,10 +544,10 @@ int fnc_HELP(const char* szCmdLn)
   Serial.println(F("ALT\t get/set Altitude over NN"));
   Serial.println(F("AUTO\t display temperature, pressure, humidity measuremets each second"));
   Serial.println(F("AUTOLOG\t Save to logfile.txt"));
-   Serial.println(F("CD\t change directory"));
+  Serial.println(F("CD\t change directory"));
   Serial.println(F("CLS\t clearscreen"));
   Serial.println(F("CONFIG\t display configuration"));
-  Serial.println(F("COPY\t copy file; <src> <targ>"));
+  Serial.println(F("COPY\t copy file; <src> <dest>"));
   Serial.println(F("DATE\t display/set date; format <DD.MM.YYYY>"));
   Serial.println(F("DEL\t delete file"));
   Serial.println(F("DIR\t display directory"));
@@ -536,12 +557,13 @@ int fnc_HELP(const char* szCmdLn)
   Serial.println(F("HELP\t this help informations"));
   Serial.println(F("HUM\t display Humidity"));
   Serial.println(F("REN\t rename file; <src> <targ>"));
-  Serial.println(F("CD\t change directory"));
   Serial.println(F("MD\t make directory"));
   Serial.println(F("MEM\t Memory info"));
   Serial.println(F("PATH\t display actual path"));
   Serial.println(F("PRES\t display pressure"));
   Serial.println(F("QNH\t display pressure at NN"));
+  Serial.println(F("REBOOT\t reboot system"));
+  Serial.println(F("RECORD\t recording in 1-sec. steps"));
   Serial.println(F("RD\t remove directory"));
   Serial.println(F("TEMP\t display temperature(s)"));
   Serial.println(F("TIME\t display/set time; format <hh.mm.ss>"));
@@ -699,7 +721,40 @@ int fnc_RD(const char* szCmdLn)
   digitalWrite(PIN_LED, 0);
   return( eRD );
 }  /* end of fnc_RD */
- 
+  
+/**************************************************/
+/*! \brief fnc_REBOOT                               
+    \param argument string: pointer of char
+    \return int- value of token
+    \ingroup token_parser */
+/**************************************************/
+int fnc_REBOOT(const char* szCmdLn)
+{
+  /* place your code here */
+  Serial.print(" : rebooting ... \r\n/>");
+  rp2040.reboot();
+  return( eREBOOT );
+}  /* end of fnc_REBOOT */
+
+/**************************************************/
+/*! \brief fnc_RECORD                               
+    \param argument string: pointer of char
+    \return int- value of token
+    \ingroup token_parser */
+/**************************************************/
+int fnc_RECORD(const char* szCmdLn)
+{
+  /* place your code here */
+    if (bRecData) {
+      Serial.print(F(": off"));
+      bRecData= false;
+    } else {
+      Serial.print(F(": on"));
+      bRecData = true;
+    } /* end if */
+  return( eRECORD );
+}  /* end of fnc_RECORD */
+    
 /**************************************************/
 /*! \brief fnc_REN                               
     \param argument string: pointer of char
@@ -818,7 +873,7 @@ int fnc_TYPE(const char* szCmdLn)
   Serial.print(F(" :\n"));
   digitalWrite(LED_BUILTIN, 1);
   if (bSDCRD= SD.begin(SDCRD)) {
-    SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
+    // SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
     File FH1 = SD.open(sLine, FILE_READ);
     if (FH1) {
       while (FH1.available()) {
@@ -933,7 +988,7 @@ int fnc_XREC(const char* szCmdLn)
   Serial.print(" : ");
   if (((strlen(szCmdLn)>1)>=1)&& (bSDCRD= SD.begin(SDCRD))) {
     digitalWrite(PIN_LED, 1);
-    SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
+    // SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
     argPathFn( szCmdLn, &sLine[0]);
 
     if (SD.exists(sLine)) {
@@ -1087,7 +1142,7 @@ int fnc_XTRAN(const char* szCmdLn)
     digitalWrite(PIN_LED, 1); 
     argPathFn( szCmdLn, &sLine[0]); 
     if (bSDCRD= SD.begin(SDCRD)) {
-      SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
+      // SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
       File FH1 = SD.open(sLine, FILE_READ);
       if (FH1 != 0) {
         iFSize = FH1.size();
@@ -1229,7 +1284,7 @@ int fnc_YREC(const char* szCmdLn)
   iRecState = YENTRY;
   if (bSDCRD= SD.begin(SDCRD)) {
     digitalWrite(PIN_LED, 1);
-    SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
+    // SDSPI.beginTransaction(SPISettings(SD_SCK_MHZ(SDSPD), MSBFIRST, SPI_MODE0)); 
     Serial.flush();
     while (!bRecEnd) {
       if (iRecState == YENTRY) {
@@ -1307,7 +1362,7 @@ int fnc_YREC(const char* szCmdLn)
               iMyCRC= uicalcCrc(ucBuffer[iL],iMyCRC);
             } /* end for */
             uint16_t iCRC = (cCrc[0]<<8) + cCrc[1]; // remote CRC
-            if ((iByteCnt==0) && (iBlkCnt==0)) { // Req. New file
+            if ((iByteCnt==0) && (iBlkCnt==0)) {    // Req. New file
               if (strlen(sLine)>1) {
                 if (!FH1) {               // if Filehandle was closed
                   if (SD.exists(sLine)) { // remove if file exists 
@@ -1318,7 +1373,7 @@ int fnc_YREC(const char* szCmdLn)
                 Serial.write((uint8_t)ACK);
                 delay(10);
                 Serial.write("C");  // YModem: reopen connection after Filename
-              } else {  // no filename - exit function
+              } else {              // no filename - exit function
                 Serial.write((uint8_t)ACK);
                 bRecEnd= true;
               } /* end if */
@@ -1445,8 +1500,8 @@ int fnSDOS_Parser(char *szCmdLn)
    iCmdPos= strcspn(szCmdLn," ");
    if (iCmdPos <= 0) iCmdPos= strlen(szCmdLn);
  
-   iCmdLn= strncmp( szCmdLn, "LCD", (iCmdPos >= sizeof("LCD"))? iCmdPos: sizeof("LCD")-1);
-   if (iCmdLn < 0) { // is less than LCD
+   iCmdLn= strncmp( szCmdLn, "MD", (iCmdPos >= sizeof("MD"))? iCmdPos: sizeof("MD")-1);
+   if (iCmdLn < 0) { // is less than MD
       iCmdLn= strncmp( szCmdLn, "DATE", (iCmdPos >= sizeof("DATE"))? iCmdPos: sizeof("DATE")-1);
       if (iCmdLn < 0) { // is less than DATE
          iCmdLn= strncmp( szCmdLn, "CD", (iCmdPos >= sizeof("CD"))? iCmdPos: sizeof("CD")-1);
@@ -1523,24 +1578,29 @@ int fnSDOS_Parser(char *szCmdLn)
             } else {
                if (iCmdLn > 0) { // is higher than EEP
                   iCmdLn= strncmp( szCmdLn, "HELP", (iCmdPos >= sizeof("HELP"))? iCmdPos: sizeof("HELP")-1);
-                  if (iCmdLn == 0) {
-                     iRet= fnc_HELP(szCmdLn+sizeof("HELP")-1);
-                  } else { // not HELP
-                     if (iCmdLn < 0) {
-                        iCmdLn= strncmp( szCmdLn, "FORMAT", (iCmdPos >= sizeof("FORMAT"))? iCmdPos: sizeof("FORMAT")-1);
-                        if (iCmdLn == 0) {
-                           iRet= fnc_FORMAT(szCmdLn+sizeof("FORMAT")-1);
-                        } else { //unknown token
-                           iRet= fnc_TokenNotFound(szCmdLn);
-                        }
-                     } else {
+                  if (iCmdLn < 0) { // is less than HELP
+                     if (strncmp( szCmdLn, "FORMAT" ,(iCmdPos >= sizeof("FORMAT"))? iCmdPos: sizeof("FORMAT")-1)==0) {
+                        iRet= fnc_FORMAT(szCmdLn+sizeof("FORMAT")-1);
+                     } else { //unknown token)
+                        iRet= fnc_TokenNotFound(szCmdLn);
+                     } // End of(13:FORMAT)
+                  } else {
+                     if (iCmdLn > 0) { // is higher than HELP
                         if (strncmp( szCmdLn, "HUM", (iCmdPos >= sizeof("HUM"))? iCmdPos: sizeof("HUM")-1)==0) {
                            iRet= fnc_HUM(szCmdLn+sizeof("HUM")-1);
-                        } else { //unknown token
-                           iRet= fnc_TokenNotFound(szCmdLn);
+                        } else { // not HUM
+                           if (strncmp( szCmdLn, "LCD", (iCmdPos >= sizeof("LCD"))? iCmdPos: sizeof("LCD")-1)==0) {
+                              iRet= fnc_LCD(szCmdLn+sizeof("LCD")-1);
+                           } else { //unknown token
+                              iRet= fnc_TokenNotFound(szCmdLn);
+                           } // End of(16:LCD)
                         } // End of(15:HUM)
-                     } // End of(13:FORMAT)
-                  } // End of(14:HELP)
+                     } else {
+                        if (iCmdLn == 0) { // Token HELP found
+                           iRet= fnc_HELP(szCmdLn+sizeof("HELP")-1);
+                        } // End of(14:HELP)
+                     }
+                  }
                } else {
                   if (iCmdLn == 0) { // Token EEP found
                      iRet= fnc_EEP(szCmdLn+sizeof("EEP")-1);
@@ -1554,55 +1614,60 @@ int fnSDOS_Parser(char *szCmdLn)
          }
       }
    } else {
-      if (iCmdLn > 0) { // is higher than LCD
+      if (iCmdLn > 0) { // is higher than MD
          iCmdLn= strncmp( szCmdLn, "TEMP", (iCmdPos >= sizeof("TEMP"))? iCmdPos: sizeof("TEMP")-1);
          if (iCmdLn < 0) { // is less than TEMP
-            iCmdLn= strncmp( szCmdLn, "PRES", (iCmdPos >= sizeof("PRES"))? iCmdPos: sizeof("PRES")-1);
-            if (iCmdLn < 0) { // is less than PRES
-               iCmdLn= strncmp( szCmdLn, "MEM", (iCmdPos >= sizeof("MEM"))? iCmdPos: sizeof("MEM")-1);
+            iCmdLn= strncmp( szCmdLn, "QNH", (iCmdPos >= sizeof("QNH"))? iCmdPos: sizeof("QNH")-1);
+            if (iCmdLn < 0) { // is less than QNH
+               iCmdLn= strncmp( szCmdLn, "PATH", (iCmdPos >= sizeof("PATH"))? iCmdPos: sizeof("PATH")-1);
                if (iCmdLn == 0) {
-                  iRet= fnc_MEM(szCmdLn+sizeof("MEM")-1);
-               } else { // not MEM
+                  iRet= fnc_PATH(szCmdLn+sizeof("PATH")-1);
+               } else { // not PATH
                   if (iCmdLn < 0) {
-                     iCmdLn= strncmp( szCmdLn, "MD", (iCmdPos >= sizeof("MD"))? iCmdPos: sizeof("MD")-1);
+                     iCmdLn= strncmp( szCmdLn, "MEM", (iCmdPos >= sizeof("MEM"))? iCmdPos: sizeof("MEM")-1);
                      if (iCmdLn == 0) {
-                        iRet= fnc_MD(szCmdLn+sizeof("MD")-1);
+                        iRet= fnc_MEM(szCmdLn+sizeof("MEM")-1);
                      } else { //unknown token
                         iRet= fnc_TokenNotFound(szCmdLn);
                      }
                   } else {
-                     if (strncmp( szCmdLn, "PATH", (iCmdPos >= sizeof("PATH"))? iCmdPos: sizeof("PATH")-1)==0) {
-                        iRet= fnc_PATH(szCmdLn+sizeof("PATH")-1);
+                     if (strncmp( szCmdLn, "PRES", (iCmdPos >= sizeof("PRES"))? iCmdPos: sizeof("PRES")-1)==0) {
+                        iRet= fnc_PRES(szCmdLn+sizeof("PRES")-1);
                      } else { //unknown token
                         iRet= fnc_TokenNotFound(szCmdLn);
-                     } // End of(19:PATH)
-                  } // End of(17:MD)
-               } // End of(18:MEM)
+                     } // End of(20:PRES)
+                  } // End of(18:MEM)
+               } // End of(19:PATH)
             } else {
-               if (iCmdLn > 0) { // is higher than PRES
-                  iCmdLn= strncmp( szCmdLn, "RD", (iCmdPos >= sizeof("RD"))? iCmdPos: sizeof("RD")-1);
-                  if (iCmdLn == 0) {
-                     iRet= fnc_RD(szCmdLn+sizeof("RD")-1);
-                  } else { // not RD
-                     if (iCmdLn < 0) {
-                        iCmdLn= strncmp( szCmdLn, "QNH", (iCmdPos >= sizeof("QNH"))? iCmdPos: sizeof("QNH")-1);
-                        if (iCmdLn == 0) {
-                           iRet= fnc_QNH(szCmdLn+sizeof("QNH")-1);
-                        } else { //unknown token
-                           iRet= fnc_TokenNotFound(szCmdLn);
-                        }
+               if (iCmdLn > 0) { // is higher than QNH
+                  iCmdLn= strncmp( szCmdLn, "REBOOT", (iCmdPos >= sizeof("REBOOT"))? iCmdPos: sizeof("REBOOT")-1);
+                  if (iCmdLn < 0) { // is less than REBOOT
+                     if (strncmp( szCmdLn, "RD" ,(iCmdPos >= sizeof("RD"))? iCmdPos: sizeof("RD")-1)==0) {
+                        iRet= fnc_RD(szCmdLn+sizeof("RD")-1);
+                     } else { //unknown token)
+                        iRet= fnc_TokenNotFound(szCmdLn);
+                     } // End of(22:RD)
+                  } else {
+                     if (iCmdLn > 0) { // is higher than REBOOT
+                        if (strncmp( szCmdLn, "RECORD", (iCmdPos >= sizeof("RECORD"))? iCmdPos: sizeof("RECORD")-1)==0) {
+                           iRet= fnc_RECORD(szCmdLn+sizeof("RECORD")-1);
+                        } else { // not RECORD
+                           if (strncmp( szCmdLn, "REN", (iCmdPos >= sizeof("REN"))? iCmdPos: sizeof("REN")-1)==0) {
+                              iRet= fnc_REN(szCmdLn+sizeof("REN")-1);
+                           } else { //unknown token
+                              iRet= fnc_TokenNotFound(szCmdLn);
+                           } // End of(25:REN)
+                        } // End of(24:RECORD)
                      } else {
-                        if (strncmp( szCmdLn, "REN", (iCmdPos >= sizeof("REN"))? iCmdPos: sizeof("REN")-1)==0) {
-                           iRet= fnc_REN(szCmdLn+sizeof("REN")-1);
-                        } else { //unknown token
-                           iRet= fnc_TokenNotFound(szCmdLn);
-                        } // End of(23:REN)
-                     } // End of(21:QNH)
-                  } // End of(22:RD)
+                        if (iCmdLn == 0) { // Token REBOOT found
+                           iRet= fnc_REBOOT(szCmdLn+sizeof("REBOOT")-1);
+                        } // End of(23:REBOOT)
+                     }
+                  }
                } else {
-                  if (iCmdLn == 0) { // Token PRES found
-                     iRet= fnc_PRES(szCmdLn+sizeof("PRES")-1);
-                  } // End of(20:PRES)
+                  if (iCmdLn == 0) { // Token QNH found
+                     iRet= fnc_QNH(szCmdLn+sizeof("QNH")-1);
+                  } // End of(21:QNH)
                }
             }
          } else {
@@ -1625,9 +1690,9 @@ int fnSDOS_Parser(char *szCmdLn)
                            iRet= fnc_VER(szCmdLn+sizeof("VER")-1);
                         } else { //unknown token
                            iRet= fnc_TokenNotFound(szCmdLn);
-                        } // End of(27:VER)
-                     } // End of(25:TIME)
-                  } // End of(26:TYPE)
+                        } // End of(29:VER)
+                     } // End of(27:TIME)
+                  } // End of(28:TYPE)
                } else {
                   if (iCmdLn > 0) { // is higher than VOL
                      iCmdLn= strncmp( szCmdLn, "XTRAN", (iCmdPos >= sizeof("XTRAN"))? iCmdPos: sizeof("XTRAN")-1);
@@ -1636,7 +1701,7 @@ int fnSDOS_Parser(char *szCmdLn)
                            iRet= fnc_XREC(szCmdLn+sizeof("XREC")-1);
                         } else { //unknown token)
                            iRet= fnc_TokenNotFound(szCmdLn);
-                        } // End of(29:XREC)
+                        } // End of(31:XREC)
                      } else {
                         if (iCmdLn > 0) { // is higher than XTRAN
                            if (strncmp( szCmdLn, "YREC", (iCmdPos >= sizeof("YREC"))? iCmdPos: sizeof("YREC")-1)==0) {
@@ -1646,30 +1711,30 @@ int fnSDOS_Parser(char *szCmdLn)
                                  iRet= fnc_YTRAN(szCmdLn+sizeof("YTRAN")-1);
                               } else { //unknown token
                                  iRet= fnc_TokenNotFound(szCmdLn);
-                              } // End of(32:YTRAN)
-                           } // End of(31:YREC)
+                              } // End of(34:YTRAN)
+                           } // End of(33:YREC)
                         } else {
                            if (iCmdLn == 0) { // Token XTRAN found
                               iRet= fnc_XTRAN(szCmdLn+sizeof("XTRAN")-1);
-                           } // End of(30:XTRAN)
+                           } // End of(32:XTRAN)
                         }
                      }
                   } else {
                      if (iCmdLn == 0) { // Token VOL found
                         iRet= fnc_VOL(szCmdLn+sizeof("VOL")-1);
-                     } // End of(28:VOL)
+                     } // End of(30:VOL)
                   }
                }
             } else {
                if (iCmdLn == 0) { // Token TEMP found
                   iRet= fnc_TEMP(szCmdLn+sizeof("TEMP")-1);
-               } // End of(24:TEMP)
+               } // End of(26:TEMP)
             }
          }
       } else {
-         if (iCmdLn == 0) { // Token LCD found
-            iRet= fnc_LCD(szCmdLn+sizeof("LCD")-1);
-         } // End of(16:LCD)
+         if (iCmdLn == 0) { // Token MD found
+            iRet= fnc_MD(szCmdLn+sizeof("MD")-1);
+         } // End of(17:MD)
       }
    }
    return(iRet);

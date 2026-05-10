@@ -156,7 +156,7 @@ void initPg01(void) {
       iLnCnt++;
       iLnPos  = iLnOfs + (iLnH * iLnCnt);
       GUI_DisString( 1, iLnPos, "Dens.Dry:        kg/m^3", &Font24, BLACK, WHITE);
-      iAltLoc = iOfAlt;
+      iAltLoc = iCalcAltitude(iPres) - (iOfAlt * 100);
   }
 }
 
@@ -253,7 +253,7 @@ void showPg01( void ) {
       iLnPos  = iLnOfs + (iLnH * iLnCnt);
       GUI_DisString( 188, iLnPos, sLn1, &Font24, BLACK, WHITE);
       
-      // fDens = (float)(iPres)/(fRS * (fTemp + 273.15));
+      // Air desity in dry air
       fDens = fCalcDensity(fTemp, ((float) iPres/100.0), 0.0);
       sprintf(sLn1, "%5.03f", fDens);
       iLnCnt++;
@@ -441,7 +441,13 @@ void initVario(int ixClk, int iyClk)
   for (iL= 0; iL <= 50; iL++) { // draw Clock-face Dots
     i = (iL + 20) % 60;
     if ((i % 5) == 0) {
-      GUI_DrawPoint((uint16_t) (cosTab[i]*78 +ixClk), (uint16_t)(sinTab[i]*78 +iyClk), DGRAY, DOT_PIXEL_3X3, DOT_FILL_AROUND);
+      if (iL < 25){
+        GUI_DrawPoint((uint16_t) (cosTab[i]*78 +ixClk), (uint16_t)(sinTab[i]*78 +iyClk), RED, DOT_PIXEL_4X4, DOT_FILL_AROUND);  
+      } else
+      if (iL >25){
+        GUI_DrawPoint((uint16_t) (cosTab[i]*78 +ixClk), (uint16_t)(sinTab[i]*78 +iyClk), GREEN, DOT_PIXEL_4X4, DOT_FILL_AROUND);
+      } else
+      GUI_DrawPoint((uint16_t) (cosTab[i]*78 +ixClk), (uint16_t)(sinTab[i]*78 +iyClk), WHITE, DOT_PIXEL_4X4, DOT_FILL_AROUND);
     } else {
       GUI_DrawPoint((uint16_t) (cosTab[i]*77 +ixClk), (uint16_t)(sinTab[i]*77 +iyClk), LGRAY, DOT_PIXEL_2X2, DOT_FILL_AROUND);
     } /* end if */
@@ -520,6 +526,7 @@ void showVarioAlt( void ) {
 */
 void initAltTemp( void ) {
   GUI_DisString( 65, 26, "Altitude     Temperature", &Font24, BLACK, WHITE);
+  GUI_DisString( 280, 126, " Get Data ", &Font24, GRAY, WHITE);
   initAltMeter(125, 150);   // Altimeter
 }
 
@@ -530,6 +537,7 @@ void initAltTemp( void ) {
 */
 void showAltTemp( void ) {
   static int32_t iAltOld= 0, iTempOld= 15;
+  static bool bRecDataOld = true;
   int32_t iAlt;
   char sLn1[30];
 
@@ -538,11 +546,20 @@ void showAltTemp( void ) {
     sprintf(sLn1, "%8.02f", (float) (iAlt/100.0));
     GUI_DisString( 40, 290, &sLn1[0], &Font24, BLACK, WHITE);
     showAltMeter( 125, 150, (uint16_t) iAlt/1000 );  // Altimeter
+  }
 
+  if (bRecData != bRecDataOld){
+    if (bRecData){
+      GUI_DisString( 280, 150, " Record ", &Font24, GREEN, BLACK);  
+    } else {
+      GUI_DisString( 280, 150, " Stoped ", &Font24, RED, WHITE);  
+    }
+    bRecDataOld = bRecData;
+  }
+  if (iAlt != iAltOld){
     sprintf(sLn1, "%8.02f", (float) (iTemp/100.0));
     GUI_DisString( 240, 290, &sLn1[0], &Font24, BLACK, WHITE);
     iTempOld = iTemp;
     iAltOld = iAlt;
-
   }
 }

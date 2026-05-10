@@ -8,8 +8,9 @@
 enum eCmdSt {eNoToken=0,
       eALT, eAUTO, eAUTOLOG, eCD, eCLS, eCONFIG, eCOPY, eDATE,
       eDEL, eDIR, eECHO, eEEP, eFORMAT, eHELP, eHUM, eLCD,
-      eMD, eMEM, ePATH, ePRES, eQNH, eRD, eREN, eTEMP,
-      eTIME, eTYPE, eVER, eVOL, eXREC, eXTRAN, eYREC, eYTRAN};
+      eMD, eMEM, ePATH, ePRES, eQNH, eRD, eREBOOT, eRECORD,
+      eREN, eTEMP, eTIME, eTYPE, eVER, eVOL, eXREC, eXTRAN,
+      eYREC, eYTRAN};
 
 //XModem
 #define SOH  0x01
@@ -43,6 +44,9 @@ enum eCmdSt {eNoToken=0,
 #define SDCRD     PIN_SS,SPI1
 
 #define MAXLCDPAGE 5
+// Wire
+#define MY_WIRE0_SDA  (4u)
+#define MY_WIRE0_SCL  (5u)
 
 // RTC DS3231
 const uint8_t adrRTC = 0x68;
@@ -71,10 +75,10 @@ const float fTempAbsWater[(2*iNumAlt)+1] = {iNumAlt,
 typedef struct {
   int time;
   int temp;
-  int press;
-  int humid;
-  int alt;
-  int dens;
+  int pres;
+  int hum;
+  float alt;
+  float dens;
 } tRecData;
 
 #endif

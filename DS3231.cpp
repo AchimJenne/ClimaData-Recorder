@@ -11,7 +11,7 @@
 bool DS3231::begin()
 {
 	Wire.begin(); // join i2c bus
-	Wire.beginTransmission(0x68);
+	Wire.beginTransmission(DS3231_ADDR);
 	return (Wire.endTransmission() == 0 ? true : false);
 }
 
