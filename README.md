@@ -1,10 +1,11 @@
 # ClimaData-Recorder
-A Raspberry-Pico based Clima-Weather-Data Recorder. The basic idea was measure the weather raw-data for a Skew-T log-P diagram (Stüve-Diagramm).<br/> This Software is doing an accurate measurement of temperature, pressure and humidity. It was the most important issue to record all relevant data and save it on the SD-Card. Later on, a extra application can calculate the Stüve-Diagram for better interpretation.<br/>
+A Raspberry-Pico based Clima-Weather-Data Recorder. The basic idea was measure the weather raw-data for a Skew-T log-P diagram (Stüve-Diagramm).<br/> This Software is doing an accurate measurement of temperature, pressure and humidity.
 Based on this values, the SW is calculating altitude (and climb-rate), absolute water mass and the air- desity. The main application should be a measurement and a basic calculation for relevant thermal gradients over the alititude.<br/>
+It was the most important issue to record all relevant data and save it on the SD-Card. Later on, a extra application can calculate the Stüve-Diagram for better interpretation.<br/>
 <img width="800" height="534" alt="CliRecBasisDatVarioAlt" src="https://github.com/user-attachments/assets/22820f3b-5457-4b56-b077-2ae65fbf560a" />
 Two Testsystems with WS-2350Plus, Akku, LCD (and SD-Card), DS3231- Module (w. EEP) and the BME680 Module<br/>
 >[!NOTE]
->The Variometer values based on the accurate altitude calculation. The calculation is working fine, but the LSB's of the sensor-ADC let the Alt.value toggle. Typical +/- 0.17 m/s up to +/- 0.5 m/s. The average looks right, but in a stand alone variometer applications... - it's not the main application to build an accurate variometer here.<br/>
+>The Variometer values based on the accurate altitude calculation. The calculation is working fine, but the LSB's of the sensor-ADC let the Alt.value toggle. Typical +/- 0.17 m/s up to +/- 0.5 m/s. The average looks right, but in a standalone variometer applications... - it's not the main application to build an accurate variometer here.<br/>
 >The variometer value is for information only!<BR/> 
 
 ## List of commands
@@ -48,9 +49,9 @@ For SD-Card access, this Software is using the SPI- mode. Definition of th SD-Ca
 - 3inch5 LCD (WS **Pico-ResTouch-LCD-3.5** or comp.ILI9488) with SD-Card 
 - **BME680**, Senormodule for Temperature, Air-pressure and humidity (Gas sensor not used)
 - **DS3231 and/with AT24CS32** (EEP).<br/>
-- This software based on other Public Domain- Software, but some functions are modifyed for this application.<br/>
-- The Arduino IDE the team<br/>
+- This software based on other Public Domain- Software, but some functions are modified for this application.<br/>
+- The Arduino IDE, Arduino SA and the team<br/>
 - Raspberry Pico GCC-implementation, done by Earle F. Philhower III<br/>
 - BME680-functions by Bosch GmbH<br/>
-- LCD-GUI implementation, by Waveshare and others<br/>
-- Realtime clock function by Manjunath CV<br/>
+- LCD-GUI implementation, by Waveshare inc. and others<br/>
+- Realtime clock functions, by Manjunath CV<br/>
