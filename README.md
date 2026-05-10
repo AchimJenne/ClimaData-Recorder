@@ -1,6 +1,6 @@
 # ClimaData-Recorder
 A Raspberry-Pico based Clima-Weather-Data Recorder. The basic idea was measure the weather raw-data for a Skew-T log-P diagram (Stüve-Diagramm).<br/> This Software is doing an accurate measurement of temperature, pressure and humidity.
-Based on this values, the SW is calculating altitude (and climb-rate), absolute water mass and the air- desity. The main application should be a measurement and a basic calculation for relevant thermal gradients over the alititude.<br/>
+Based on these values, the SW is calculating altitude (and climb-rate), absolute water mass and the air- density. The main application should be a measurement and a basic calculation for relevant thermal gradients over the altitude.<br/>
 It was the most important issue to record all relevant data and save it on the SD-Card. Later on, a extra application can calculate the Stüve-Diagram for better interpretation.<br/>
 <img width="800" height="534" alt="CliRecBasisDatVarioAlt" src="https://github.com/user-attachments/assets/22820f3b-5457-4b56-b077-2ae65fbf560a" />
 Two Testsystems with WS-2350Plus, Akku, LCD (and SD-Card), DS3231- Module (w. EEP) and the BME680 Module<br/>
