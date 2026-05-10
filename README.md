@@ -7,6 +7,20 @@ Two Testsystems with WS-2350Plus, Akku, LCD (and SD-Card), DS3231- Module (w. EE
 >[!NOTE]
 >The Variometer values based on the accurate altitude calculation. The calculation is working fine, but the LSB's of the sensor-ADC let the Alt.value toggle. Typical +/- 0.17 m/s up to +/- 0.5 m/s. The average looks right, but in a standalone variometer applications... - it's not the main application to build an accurate variometer here.<br/>
 >The variometer value is for information only!<BR/> 
+# Recording Data
+There are two types of Recording Data:
+- Long interval Data- recording (Terminal **AUTOLOG** command)
+- Short interval Data- recording (Touchscreen Altitude-Temperature dialog)
+
+The **AUTOLOG** command starts the measurement each second, but build an everage over 60 seconds and write it on the SD- Card. This command is for long term measurements. <br/>
+Each month, a new File is created. The filename format for example is:<br/>
+```ruby
+- 2026Apr.log
+- 2026Mai.log
+```
+<br/>
+
+# Terminal (VT-100) Dialogs
 
 ## List of commands
 **ALT**    -  Set default Altitude for QNH<br/>
